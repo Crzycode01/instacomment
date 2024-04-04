@@ -1,0 +1,112 @@
+import random
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+# List of Instagram accounts
+accounts = [
+    {"username": "username", "password": "password"},
+    {"username": "username", "password": "password"}
+]
+
+# Replace the URL of the post you want to comment on
+POST_URL = "url"
+
+
+# Read comments from the text file
+def read_comments_from_file(filename):
+    with open(filename, 'r') as file:
+        comments = [line.strip() for line in file]
+    return comments
+
+
+# Function to log in to Instagram
+def login(driver, username, password):
+    print(f"Logging in as {username}...")
+    driver.get("https://www.instagram.com/accounts/login/")
+    time.sleep(2)
+
+    try:
+        # Find the username input field
+        username_input = driver.find_element_by_css_selector("input[name='username']")
+        # Find the password input field
+        password_input = driver.find_element_by_css_selector("input[name='password']")
+
+        # Enter the username and password
+        username_input.send_keys(username)
+        password_input.send_keys(password)
+        password_input.send_keys(Keys.ENTER)
+        print("Login attempted...")
+
+        # Wait for a moment to allow the login process to complete
+        time.sleep(10)
+
+        # Check if login was successful by looking for the presence of the profile page elements
+        profile_page_elements = driver.find_elements_by_css_selector(".gmFkV")
+        if not profile_page_elements:
+            raise Exception("Login failed. Please check your credentials.")
+
+        print("Login successful!")
+    except Exception as e:
+        print(f"Error occurred during login: {str(e)}")
+        raise e
+
+
+# Function to comment on a post
+def comment(driver, comment_text):
+    print("Commenting...")
+    driver.get(POST_URL)
+    time.sleep(2)
+
+    try:
+        # Wait for the comment input field to be visible
+        comment_input = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Add a comment…']"))
+        )
+        comment_input.click()
+        time.sleep(1)
+        comment_input.send_keys(comment_text)
+        time.sleep(1)
+        comment_input.send_keys(Keys.ENTER)
+        print("Comment posted!")
+    except Exception as e:
+        print(f"Error occurred during commenting: {str(e)}")
+        raise e
+
+
+# Main function
+def main():
+    for account in accounts:
+        try:
+            # Initialize the Selenium WebDriver
+            driver = webdriver.Chrome()
+
+            # Log in to Instagram
+            login(driver, account["username"], account["password"])
+
+            # Read comments from file
+            comments = read_comments_from_file("Hallo")
+
+            # Repeat commenting
+            for comment_text in comments:
+                try:
+                    comment(driver, comment_text)
+                    print("Commented:", comment_text)
+                except Exception as e:
+                    print(f"Error occurred during commenting: {str(e)}")
+                    break  # Stop commenting if an error occurs
+
+            # Close the browser window
+            driver.quit()
+
+        except Exception as e:
+            print(f"Error occurred: {str(e)}")
+            print(f"Switching to next account...")
+            continue
+
+
+if __name__ == "__main__":
+    main()
